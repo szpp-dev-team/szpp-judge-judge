@@ -105,7 +105,12 @@ func RunCommand(command string, tmpDirPath string, optFuncs ...OptionFunc) (*Res
 		}
 		stderrBytes, err = readFileFull(path.Join(tmpDirPath, "stderr.txt"), StderrSizeLimit)
 		if err != nil {
-			return nil, err
+			// コンパイル時は stderr.txt は生成されないため、ErrNotExist は無視する
+			if errors.Is(err, os.ErrNotExist) {
+				stderrBytes = make([]byte, 0)
+			} else {
+				return nil, err
+			}	
 		}
 	}
 
