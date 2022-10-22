@@ -15,10 +15,10 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	bkt := srv.gcs.Bucket("szpp-judge")
 
 	// tmp directory 作成
-	dir := filepath.Join("tmp", "submits", judgeReq.SubmitID)
-	os.Chmod(dir, os.ModePerm)
+	tmpDir := filepath.Join("tmp", "submits", judgeReq.SubmitID)
+	os.Chmod(tmpDir, os.ModePerm)
 
-	err := os.MkdirAll(dir, os.ModePerm)
+	err := os.MkdirAll(tmpDir, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	}
 	defer r.Close()
 
-	file, err := os.Create(filepath.Join(dir, "Main.cpp"))
+	file, err := os.Create(filepath.Join(tmpDir, "Main.cpp"))
 	if err != nil {
 		return nil, err
 	}
