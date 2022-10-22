@@ -3,6 +3,7 @@ package model
 type JudgeRequest struct {
 	SubmitID    uint64   `json:"submitID"`
 	LanguageID  string   `json:"languageID"`
+	TaskID      string   `json: "taskID"`
 	TestcaseIDs []uint64 `json:"testcaseIDs"`
 }
 
@@ -17,7 +18,7 @@ type TestcaseResult struct {
 	ID              uint64 `json:"id"`
 	Status          Status `json:"status"`
 	ExecutionTime   int64  `json:"executionTime"`   // in milliseconds
-	ExecutionMemory int64  `json:"executionMemory"` // in killobytes
+	ExecutionMemory int64  `json:"executionMemory"` // in kilobytes
 }
 
 type Status string
