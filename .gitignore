@@ -1,3 +1,7 @@
+image.png
 .env
 credentials.json
-.cpp
+*.cpp
+*.txt
+Main
+*.json
