@@ -2,11 +2,14 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
+	"github.com/szpp-dev-team/szpp-judge-judge/lib/exec"
 	"github.com/szpp-dev-team/szpp-judge-judge/model"
+	"github.com/szpp-dev-team/szpp-judge-judge/proglang"
 )
 
 func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.JudgeResponse, error) {
@@ -46,6 +49,12 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	// テストケースをGCSから取得
 
 	// ソースコードをコンパイルする
+	cmd := proglang.NewCommand(judgeReq.LanguageID, tmpDir)
+	result, err := exec.RunCommand(cmd.CompileCommand, tmpDir)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(result.ExecutionTime)
 
 	// ソースコードを全てのテストケースに対して実行する
 
