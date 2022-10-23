@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"io"
 	"log"
+	"math"
 	"os"
 	pkgexec "os/exec"
 	"path"
@@ -137,6 +138,8 @@ func OptTimeLimit(limit time.Duration) OptionFunc {
 	}
 }
 
+var ErrTooBigFile = errors.New("the specified file is too big to open")
+
 func readFileFull(filename string, limit int) ([]byte, error) {
 	f, err := os.Open(filename)
 	if err != nil {
@@ -144,7 +147,20 @@ func readFileFull(filename string, limit int) ([]byte, error) {
 	}
 	defer f.Close()
 
-	buf := make([]byte, 0, limit)
+	fileInfo, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	fileSizeInt64 := fileInfo.Size()
+	if fileSizeInt64 > math.MaxInt {
+		return nil, ErrTooBigFile
+	}
+	fileSizeInt := int(fileSizeInt64)
+	if fileSizeInt < limit {
+		limit = fileSizeInt
+	}
+
+	buf := make([]byte, limit)
 	if _, err := io.ReadFull(f, buf); err != nil {
 		return nil, err
 	}

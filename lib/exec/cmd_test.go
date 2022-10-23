@@ -14,6 +14,7 @@ func TestRunCommandSuccess(t *testing.T) {
 	}
 	test.AssertNeq(t, res.ExecutionMemory, 0)
 	test.Assert(t, res.Success)
+	test.Assert(t, len(res.Stdout) != 0)
 }
 
 func TestRunCommandFailure(t *testing.T) {
