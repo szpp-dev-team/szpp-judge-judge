@@ -18,10 +18,22 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	bkt := srv.gcs.Bucket("szpp-judge")
 
 	// tmp directory 作成
-	tmpDir := filepath.Join("tmp", "submits", judgeReq.SubmitID)
-	os.Chmod(tmpDir, os.ModePerm)
+	submitsDir := filepath.Join("tmp", "submits", judgeReq.SubmitID)
+	os.Chmod(submitsDir, os.ModePerm)
 
-	err := os.MkdirAll(tmpDir, os.ModePerm)
+	err := os.MkdirAll(submitsDir, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	testCasesDir := filepath.Join("tmp", "test-cases", judgeReq.SubmitID)
+	os.Chmod(testCasesDir, os.ModePerm)
+
+	err = os.MkdirAll(filepath.Join(testCasesDir, "in"), os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+	err = os.MkdirAll(filepath.Join(testCasesDir, "out"), os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +47,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	}
 	defer r.Close()
 
-	file, err := os.Create(filepath.Join(tmpDir, "Main.cpp"))
+	file, err := os.Create(filepath.Join(submitsDir, "Main.cpp"))
 	if err != nil {
 		return nil, err
 	}
@@ -47,10 +59,43 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	}
 
 	// テストケースをGCSから取得
+	for _, testCaseID := range judgeReq.TestcaseIDs {
+		obj = bkt.Object(filepath.Join("testcases", judgeReq.SubmitID, "in" , testCaseID))
+		r, err = obj.NewReader(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		file, err = os.Create(filepath.Join(testCasesDir, "in" , testCaseID))
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = io.Copy(file, r)
+		if err != nil {
+			return nil, err
+		}
+
+		obj = bkt.Object(filepath.Join("testcases", judgeReq.SubmitID, "out" , testCaseID))
+		r, err = obj.NewReader(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		file, err = os.Create(filepath.Join(testCasesDir, "out" , testCaseID))
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = io.Copy(file, r)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// ソースコードをコンパイルする
-	cmd := proglang.NewCommand(judgeReq.LanguageID, tmpDir)
-	result, err := exec.RunCommand(cmd.CompileCommand, tmpDir)
+	cmd := proglang.NewCommand(judgeReq.LanguageID, submitsDir)
+	result, err := exec.RunCommand(cmd.CompileCommand, submitsDir)
 	if err != nil {
 		return nil, err
 	}
