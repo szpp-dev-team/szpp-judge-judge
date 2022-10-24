@@ -3,7 +3,6 @@ package exec
 import (
 	"bufio"
 	"io"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -74,7 +73,6 @@ func ParseGnuTimeOutput(r io.Reader) (*GnuTimeResult, error) {
 			}
 			break
 		}
-		log.Println(string(line))
 		key, value, _ := strings.Cut(strings.TrimSpace(string(line)), ":")
 		value = strings.TrimSpace(value)
 		switch key {
