@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/szpp-dev-team/szpp-judge-judge/lib/exec"
 	"github.com/szpp-dev-team/szpp-judge-judge/model"
@@ -60,13 +61,13 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 
 	// テストケースをGCSから取得
 	for _, testCaseID := range judgeReq.TestcaseIDs {
-		obj = bkt.Object(filepath.Join("testcases", judgeReq.SubmitID, "in" , testCaseID))
+		obj = bkt.Object(filepath.Join("testcases", judgeReq.SubmitID, "in", testCaseID))
 		r, err = obj.NewReader(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		file, err = os.Create(filepath.Join(testCasesDir, "in" , testCaseID))
+		file, err = os.Create(filepath.Join(testCasesDir, "in", testCaseID))
 		if err != nil {
 			return nil, err
 		}
@@ -75,14 +76,15 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 		if err != nil {
 			return nil, err
 		}
+		file.Close()
 
-		obj = bkt.Object(filepath.Join("testcases", judgeReq.SubmitID, "out" , testCaseID))
+		obj = bkt.Object(filepath.Join("testcases", judgeReq.SubmitID, "out", testCaseID))
 		r, err = obj.NewReader(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		file, err = os.Create(filepath.Join(testCasesDir, "out" , testCaseID))
+		file, err = os.Create(filepath.Join(testCasesDir, "out", testCaseID))
 		if err != nil {
 			return nil, err
 		}
@@ -91,6 +93,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 		if err != nil {
 			return nil, err
 		}
+		file.Close()
 	}
 
 	// ソースコードをコンパイルする
@@ -102,6 +105,15 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	fmt.Println(result.ExecutionTime)
 
 	// ソースコードを全てのテストケースに対して実行する
+	var results []*exec.Result
+	for _, testCaseID := range judgeReq.TestcaseIDs {
+		execCmd := cmd.ExecuteCommand + "  <" + filepath.Join(testCasesDir, "in", testCaseID)
+		result, err = exec.RunCommand(execCmd, submitsDir)
+		results = append(results, result)
+	}
+	for i, row := range results {
+		fmt.Println(strconv.Itoa(i) + ": " + row.Stdout)
+	}
 
 	// レスポンスを返す
 
