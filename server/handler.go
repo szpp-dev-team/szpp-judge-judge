@@ -110,45 +110,53 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	}
 
 	// 判定してレスポンスを返す。
-	var resp model.JudgeResponse
-	resp.TestcaseResults = make([]model.TestcaseResult, len(execResult))
-	for i, row := range judgeReq.TestcaseIDs {
-		var testCaseResult model.TestcaseResult
-		testCaseResult.ID = row
-		resp.TestcaseResults[i] = testCaseResult
-		resp.TestcaseResults[i].ExecutionMemory = int64(result.ExecutionMemory)
-		resp.TestcaseResults[i].ExecutionTime   = int64(result.ExecutionTime)
-	}
+	resp := *makeResp(judgeReq.TestcaseIDs, execResult, testCaseOut)
 
-	resp.Status = model.StatusAC
-	for i, row := range execResult {
-		if !(row.Success) {
-			resp.TestcaseResults[i].Status = model.StatusCE
-			resp.Status = model.StatusCE
-			resp.CompileMessage = &result.Stderr
-		} else if row.Stderr != "" {
-			resp.TestcaseResults[i].Status = model.StatusRE
-			resp.TestcaseResults[i].Status = model.StatusRE
-			resp.ErrorMessage = &result.Stderr
-		} else if row.ExecutionTime.Milliseconds() > 2000 {
-			resp.TestcaseResults[i].Status = model.StatusTLE
-			resp.Status = model.StatusTLE
-		} else if row.ExecutionMemory > 1024*1000 {
-			resp.TestcaseResults[i].Status = model.StatusMLE
-			resp.Status = model.StatusMLE
-		} else if false { // TODO oleの条件
-			resp.TestcaseResults[i].Status = model.StatusOLE
-			resp.Status = model.StatusOLE
+	return &resp, nil
+}
+
+func makeResp(testCaseIDs []string, execResult []*exec.Result, correctAns [][]byte) *model.JudgeResponse {
+	var ans model.JudgeResponse
+	ans.TestcaseResults = make([]model.TestcaseResult, len(execResult))
+
+	ans.Status = model.StatusAC
+
+	for i, r := range execResult {
+		var tcr model.TestcaseResult
+		tcr.ID = testCaseIDs[i]
+		tcr.ExecutionMemory = int64(r.ExecutionMemory)
+		tcr.ExecutionTime = r.ExecutionTime.Milliseconds()
+
+		if !(r.Success) {
+			tcr.Status = model.StatusCE
+			ans.Status = model.StatusCE
+			ans.CompileMessage = &r.Stderr
+		} else if r.Stderr != "" {
+			tcr.Status = model.StatusRE
+			ans.Status = model.StatusCE
+			ans.ErrorMessage = &r.Stderr
+		} else if r.ExecutionTime.Milliseconds() > 2000 {
+			tcr.Status = model.StatusTLE
+			ans.Status = model.StatusTLE
+		} else if r.ExecutionMemory > 1024*100 {
+			tcr.Status = model.StatusMLE
+			ans.Status = model.StatusMLE
+		} else if false {
+			tcr.Status = model.StatusOLE
+			ans.Status = model.StatusOLE
 		} else {
-			userAns := strings.Fields(row.Stdout)
-			correctAns := strings.Fields(string(testCaseOut[i]))
-			if reflect.DeepEqual(userAns, correctAns) {
-				resp.TestcaseResults[i].Status = model.StatusAC
+			userAns := strings.Fields(r.Stdout)
+			correct := strings.Fields(string(correctAns[i]))
+			if reflect.DeepEqual(userAns, correct) {
+				tcr.Status = model.StatusAC
 			} else {
-				resp.TestcaseResults[i].Status = model.StatusWA
-				resp.Status = model.StatusWA
+				tcr.Status = model.StatusWA
+				ans.Status = model.StatusWA
 			}
 		}
+
+		ans.TestcaseResults[i] = tcr
 	}
-	return &resp, nil
+
+	return &ans
 }
