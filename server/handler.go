@@ -37,12 +37,12 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 
 	correctAns := [][]byte{}
 	for _, testCaseID := range judgeReq.TestcaseIDs {
-		err = saveGCSContentAsFile(ctx, bkt, filepath.Join("testcases", judgeReq.SubmitID, "in", testCaseID), filepath.Join(testCasesDir, testCaseID))
+		err = saveGCSContentAsFile(ctx, bkt, filepath.Join("testcases", judgeReq.TaskID, "in", testCaseID), filepath.Join(testCasesDir, testCaseID))
 		if err != nil {
 			return nil, err
 		}
 
-		tmp, err := getGCSContentAsBytes(ctx, bkt, filepath.Join("testcases", judgeReq.SubmitID, "out", testCaseID))
+		tmp, err := getGCSContentAsBytes(ctx, bkt, filepath.Join("testcases", judgeReq.TaskID, "out", testCaseID))
 		if err != nil {
 			return nil, err
 		}
@@ -61,6 +61,9 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	for _, testCaseID := range judgeReq.TestcaseIDs {
 		execCmd := cmd.ExecuteCommand + "  <" + filepath.Join(testCasesDir, testCaseID)
 		result, err = exec.RunCommand(execCmd, submitsDir)
+		if err != nil {
+			return nil, err
+		}
 		execResult = append(execResult, result)
 	}
 
