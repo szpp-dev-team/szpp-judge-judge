@@ -3,6 +3,7 @@ package exec
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -51,6 +52,7 @@ func RunCommand(command string, tmpDirPath string, optFuncs ...OptionFunc) (*Res
 
 	// コマンド実行
 	if err := cmd.Start(); err != nil {
+		fmt.Println("check cmd start")
 		return nil, err
 	}
 	tc := time.NewTicker(opt.TimeLimit) // TimeLimit の時間が経ったら chan を send する
