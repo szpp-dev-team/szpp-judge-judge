@@ -74,7 +74,10 @@ func RunCommand(command string, tmpDirPath string, optFuncs ...OptionFunc) (*Res
 	case err := <-cmdExitChan:
 		log.Println("exited")
 		if err != nil {
-			return nil, err
+			exitError := &pkgexec.ExitError{}
+			if !errors.As(err, &exitError) {
+				return nil, err
+			}
 		}
 	}
 
