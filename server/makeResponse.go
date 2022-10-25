@@ -20,24 +20,24 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 		tcr.ExecutionMemory = int64(r.ExecutionMemory)
 		tcr.ExecutionTime = r.ExecutionTime.Milliseconds()
 
-		if !(r.Success) {
+		if !(r.Success) { // CE
 			tcr.Status = model.StatusCE
 			ans.Status = model.StatusCE
 			ans.CompileMessage = &r.Stderr
-		} else if r.Stderr != "" {
+		} else if r.Stderr != "" { // RE
 			tcr.Status = model.StatusRE
 			ans.Status = model.StatusCE
 			ans.ErrorMessage = &r.Stderr
-		} else if r.ExecutionTime.Milliseconds() > 2000 {
+		} else if r.ExecutionTime.Milliseconds() > 2000 { // TLE
 			tcr.Status = model.StatusTLE
 			ans.Status = model.StatusTLE
-		} else if r.ExecutionMemory > 1024*100 {
+		} else if r.ExecutionMemory > 1024*100 { // MLE
 			tcr.Status = model.StatusMLE
 			ans.Status = model.StatusMLE
-		} else if false {
+		} else if false { // OLE
 			tcr.Status = model.StatusOLE
 			ans.Status = model.StatusOLE
-		} else {
+		} else { // AC or WA
 			userAns := strings.Fields(r.Stdout)
 			correct := strings.Fields(string(correctAns[i]))
 			if reflect.DeepEqual(userAns, correct) {
