@@ -74,7 +74,10 @@ func RunCommand(command string, tmpDirPath string, optFuncs ...OptionFunc) (*Res
 	case err := <-cmdExitChan:
 		log.Println("exited")
 		if err != nil {
-			return nil, err
+			exitError := &pkgexec.ExitError{}
+			if !errors.As(err, &exitError) {
+				return nil, err
+			}
 		}
 	}
 
@@ -85,34 +88,28 @@ func RunCommand(command string, tmpDirPath string, optFuncs ...OptionFunc) (*Res
 		return nil, err
 	}
 
-	var (
-		stdoutBytes []byte
-		stderrBytes []byte
-	)
+	stdoutBytes, err := readFileFull(path.Join(tmpDirPath, "stdout.txt"), StdoutSizeLimit)
+	if err != nil {
+		// コンパイル時は stdout.txt は生成されないため、ErrNotExist は無視する
+		if errors.Is(err, os.ErrNotExist) {
+			stdoutBytes = make([]byte, 0)
+		} else {
+			return nil, err
+		}
+	}
+	stderrBytes, err := readFileFull(path.Join(tmpDirPath, "stderr.txt"), StderrSizeLimit)
+	if err != nil {
+		// コンパイル時は stderr.txt は生成されないため、ErrNotExist は無視する
+		if errors.Is(err, os.ErrNotExist) {
+			stderrBytes = make([]byte, 0)
+		} else {
+			return nil, err
+		}
+	}
+
 	var success bool
 	if cmd.ProcessState != nil {
 		success = cmd.ProcessState.Success()
-	}
-	if success {
-		var err error
-		stdoutBytes, err = readFileFull(path.Join(tmpDirPath, "stdout.txt"), StdoutSizeLimit)
-		if err != nil {
-			// コンパイル時は stdout.txt は生成されないため、ErrNotExist は無視する
-			if errors.Is(err, os.ErrNotExist) {
-				stdoutBytes = make([]byte, 0)
-			} else {
-				return nil, err
-			}
-		}
-		stderrBytes, err = readFileFull(path.Join(tmpDirPath, "stderr.txt"), StderrSizeLimit)
-		if err != nil {
-			// コンパイル時は stderr.txt は生成されないため、ErrNotExist は無視する
-			if errors.Is(err, os.ErrNotExist) {
-				stderrBytes = make([]byte, 0)
-			} else {
-				return nil, err
-			}	
-		}
 	}
 
 	return &Result{
@@ -133,7 +130,7 @@ type OptionFunc func(*Option)
 
 func DefaultOption() *Option {
 	return &Option{
-		TimeLimit: time.Second,
+		TimeLimit: 20 * time.Second,
 	}
 }
 
