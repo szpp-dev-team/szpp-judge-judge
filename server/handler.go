@@ -1,9 +1,11 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -60,7 +62,8 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	}
 
 	// テストケースをGCSから取得
-	for _, testCaseID := range judgeReq.TestcaseIDs {
+	testCaseOut := [][]byte{}
+	for i, testCaseID := range judgeReq.TestcaseIDs {
 		obj = bkt.Object(filepath.Join("testcases", judgeReq.SubmitID, "in", testCaseID))
 		r, err = obj.NewReader(ctx)
 		if err != nil {
@@ -84,16 +87,12 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 			return nil, err
 		}
 
-		file, err = os.Create(filepath.Join(testCasesDir, "out", testCaseID))
+		out, err := ioutil.ReadAll(r)
 		if err != nil {
 			return nil, err
 		}
-
-		_, err = io.Copy(file, r)
-		if err != nil {
-			return nil, err
-		}
-		file.Close()
+		testCaseOut = append(testCaseOut, []byte(""))
+		testCaseOut[i] = out
 	}
 
 	// ソースコードをコンパイルする
@@ -105,17 +104,56 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	fmt.Println(result.ExecutionTime)
 
 	// ソースコードを全てのテストケースに対して実行する
-	var results []*exec.Result
+	var execResult []*exec.Result
 	for _, testCaseID := range judgeReq.TestcaseIDs {
 		execCmd := cmd.ExecuteCommand + "  <" + filepath.Join(testCasesDir, "in", testCaseID)
 		result, err = exec.RunCommand(execCmd, submitsDir)
-		results = append(results, result)
-	}
-	for i, row := range results {
-		fmt.Println(strconv.Itoa(i) + ": " + row.Stdout)
+		execResult = append(execResult, result)
 	}
 
-	// レスポンスを返す
-
-	return nil, nil
+	// 判定してレスポンスを返す。
+	var resp model.JudgeResponse
+	resp.TestcaseResults = make([]model.TestcaseResult, len(execResult))
+	for i, testCaseID := range judgeReq.TestcaseIDs {
+		var testCaseResult model.TestcaseResult
+		testCaseResult.ID = testCaseID
+		resp.TestcaseResults[i] = testCaseResult
+	}
+	for _, testCaseResult := range resp.TestcaseResults {
+		testCaseResult.ExecutionMemory = int64(result.ExecutionMemory)
+		testCaseResult.ExecutionTime = int64(result.ExecutionTime)
+	}
+	resp.Status = model.StatusAC
+	for i, row := range resp.TestcaseResults {
+		tmp := execResult[i]
+		if !(tmp.Success) {
+			row.Status = model.StatusCE
+			resp.Status = model.StatusCE
+			resp.CompileMessage = &result.Stderr
+		} else if tmp.Stderr != "" {
+			row.Status = model.StatusRE
+			resp.Status = model.StatusRE
+			resp.ErrorMessage = &result.Stderr
+		} else if tmp.ExecutionTime.Milliseconds() > 2000 {
+			row.Status = model.StatusTLE
+			resp.Status = model.StatusTLE
+		} else if tmp.ExecutionMemory > 1024*1000 {
+			row.Status = model.StatusMLE
+			resp.Status = model.StatusMLE
+		} else if false {
+			row.Status = model.StatusOLE
+			resp.Status = model.StatusOLE
+		} else {
+			fmt.Println(strconv.Itoa(i))
+			fmt.Println([]byte(tmp.Stdout))
+			fmt.Println(testCaseOut[i])
+			if bytes.Equal([]byte(tmp.Stdout+"\n"), testCaseOut[i]) {
+				row.Status = model.StatusAC
+			} else {
+				row.Status = model.StatusWA
+				resp.Status = model.StatusWA
+			}
+		}
+	}
+	return &resp, nil
 }
