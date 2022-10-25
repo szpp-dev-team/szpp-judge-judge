@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/szpp-dev-team/szpp-judge-judge/lib/exec"
 	"github.com/szpp-dev-team/szpp-judge-judge/model"
@@ -57,17 +58,25 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 
 	// ソースコードをコンパイルする
 	cmd := proglang.NewCommand(judgeReq.LanguageID, submitsDir)
-	result, err := exec.RunCommand(cmd.CompileCommand, submitsDir)
+	fmt.Println(cmd.CompileCommand)
+	result, err := exec.RunCommand(cmd.CompileCommand, submitsDir, exec.OptTimeLimit(10*time.Second))
 	if err != nil {
 		fmt.Println("fail to compile")
 		return nil, err
+	}
+	// コンパイル失敗してたらCEを返す
+	if !(result.Success) {
+		fmt.Println(result.Stdout)
+		fmt.Println(result.Stderr)
+		ans := makeCEresp(result.Stderr)
+		return ans, nil
 	}
 
 	// ソースコードを全てのテストケースに対して実行する
 	var execResult []*exec.Result
 	for _, testCaseID := range judgeReq.TestcaseIDs {
 		execCmd := cmd.ExecuteCommand + "  <" + filepath.Join(testCasesDir, testCaseID)
-		result, err = exec.RunCommand(execCmd, submitsDir)
+		result, err = exec.RunCommand(execCmd, submitsDir, exec.OptTimeLimit(3*time.Second))
 		if err != nil {
 			fmt.Println("fail to execute")
 			return nil, err

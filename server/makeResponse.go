@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -20,18 +21,15 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 		tcr.ExecutionMemory = int64(result.ExecutionMemory)
 		tcr.ExecutionTime = result.ExecutionTime.Milliseconds()
 
-		if !(result.Success) { // CE
-			tcr.Status = model.StatusCE
-			ans.Status = model.StatusCE
-			ans.CompileMessage = &result.Stderr
-		} else if result.Stderr != "" { // RE
+		if result.Stderr != "" { // RE 
+			fmt.Println(result.Stderr)
 			tcr.Status = model.StatusRE
-			ans.Status = model.StatusCE
+			ans.Status = model.StatusRE
 			ans.ErrorMessage = &result.Stderr
 		} else if result.ExecutionTime.Milliseconds() > 2000 { // TLE
 			tcr.Status = model.StatusTLE
 			ans.Status = model.StatusTLE
-		} else if result.ExecutionMemory > 1024*100 { // MLE
+		} else if result.ExecutionMemory > 128*100 { // MLE
 			tcr.Status = model.StatusMLE
 			ans.Status = model.StatusMLE
 		} else if false { // OLE
@@ -51,5 +49,12 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 		ans.TestcaseResults[i] = tcr
 	}
 
+	return &ans
+}
+
+func makeCEresp(compileMessage string) *model.JudgeResponse {
+	var ans model.JudgeResponse
+	ans.Status = model.StatusCE
+	ans.CompileMessage = &compileMessage
 	return &ans
 }
