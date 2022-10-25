@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -20,18 +21,21 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	submitsDir := filepath.Join(tmpDirPath, "submits", judgeReq.SubmitID)
 	err := os.MkdirAll(submitsDir, os.ModePerm)
 	if err != nil {
+		fmt.Println("fail to make submit dir")
 		return nil, err
 	}
 
 	testCasesDir := filepath.Join(tmpDirPath, "test-cases", judgeReq.SubmitID)
 	err = os.MkdirAll(testCasesDir, os.ModePerm)
 	if err != nil {
+		fmt.Println("fail make test-cases dir")
 		return nil, err
 	}
 
 	// GCSからソースコード・テストケースを取得
 	err = saveGCSContentAsFile(ctx, bkt, filepath.Join("submits", judgeReq.SubmitID), filepath.Join(submitsDir, "Main.cpp"))
 	if err != nil {
+		fmt.Println("fail to get submit")
 		return nil, err
 	}
 
@@ -39,11 +43,13 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	for _, testCaseID := range judgeReq.TestcaseIDs {
 		err = saveGCSContentAsFile(ctx, bkt, filepath.Join("testcases", judgeReq.TaskID, "in", testCaseID), filepath.Join(testCasesDir, testCaseID))
 		if err != nil {
+			fmt.Println("fail to get testcase in")
 			return nil, err
 		}
 
 		tmp, err := getGCSContentAsBytes(ctx, bkt, filepath.Join("testcases", judgeReq.TaskID, "out", testCaseID))
 		if err != nil {
+			fmt.Println("fail to get testcase out")
 			return nil, err
 		}
 		correctAns = append(correctAns, tmp)
@@ -53,6 +59,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	cmd := proglang.NewCommand(judgeReq.LanguageID, submitsDir)
 	result, err := exec.RunCommand(cmd.CompileCommand, submitsDir)
 	if err != nil {
+		fmt.Println("fail to compile")
 		return nil, err
 	}
 
@@ -62,6 +69,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 		execCmd := cmd.ExecuteCommand + "  <" + filepath.Join(testCasesDir, testCaseID)
 		result, err = exec.RunCommand(execCmd, submitsDir)
 		if err != nil {
+			fmt.Println("fail to execute")
 			return nil, err
 		}
 		execResult = append(execResult, result)
