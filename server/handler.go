@@ -29,13 +29,12 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 		return nil, err
 	}
 
-	// ソースコードをGCPから取得
+	// GCSからソースコード・テストケースを取得
 	err = saveGCSContentAsFile(ctx, bkt, filepath.Join("submits", judgeReq.SubmitID), filepath.Join(submitsDir, "Main.cpp"))
 	if err != nil {
 		return nil, err
 	}
 
-	// テストケースをGCSから取得
 	correctAns := [][]byte{}
 	for _, testCaseID := range judgeReq.TestcaseIDs {
 		err = saveGCSContentAsFile(ctx, bkt, filepath.Join("testcases", judgeReq.SubmitID, "in", testCaseID), filepath.Join(testCasesDir, testCaseID))
@@ -65,7 +64,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 		execResult = append(execResult, result)
 	}
 
-	// 判定してレスポンスを返す。
+	// 判定してレスポンスを返す
 	resp := *makeResp(judgeReq.TestcaseIDs, execResult, correctAns)
 
 	return &resp, nil
