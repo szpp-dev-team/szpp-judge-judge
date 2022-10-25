@@ -16,13 +16,14 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	bkt := srv.gcs.Bucket("szpp-judge")
 
 	// tmp directory 作成
-	submitsDir := filepath.Join("tmp", "submits", judgeReq.SubmitID)
+	tmpDirPath := "../tmp"
+	submitsDir := filepath.Join(tmpDirPath, "submits", judgeReq.SubmitID)
 	err := os.MkdirAll(submitsDir, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
 
-	testCasesDir := filepath.Join("tmp", "test-cases", judgeReq.SubmitID)
+	testCasesDir := filepath.Join(tmpDirPath, "test-cases", judgeReq.SubmitID)
 	err = os.MkdirAll(testCasesDir, os.ModePerm)
 	if err != nil {
 		return nil, err
