@@ -29,11 +29,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	testCasesDir := filepath.Join("tmp", "test-cases", judgeReq.SubmitID)
 	os.Chmod(testCasesDir, os.ModePerm)
 
-	err = os.MkdirAll(filepath.Join(testCasesDir, "in"), os.ModePerm)
-	if err != nil {
-		return nil, err
-	}
-	err = os.MkdirAll(filepath.Join(testCasesDir, "out"), os.ModePerm)
+	err = os.MkdirAll(testCasesDir, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +43,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	// テストケースをGCSから取得
 	testCaseOut := [][]byte{}
 	for _, testCaseID := range judgeReq.TestcaseIDs {
-		err = saveGCSContentAsFile(ctx, bkt, filepath.Join("testcases", judgeReq.SubmitID, "in", testCaseID), filepath.Join(testCasesDir, "in", testCaseID))
+		err = saveGCSContentAsFile(ctx, bkt, filepath.Join("testcases", judgeReq.SubmitID, "in", testCaseID), filepath.Join(testCasesDir, testCaseID))
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +65,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	// ソースコードを全てのテストケースに対して実行する
 	var execResult []*exec.Result
 	for _, testCaseID := range judgeReq.TestcaseIDs {
-		execCmd := cmd.ExecuteCommand + "  <" + filepath.Join(testCasesDir, "in", testCaseID)
+		execCmd := cmd.ExecuteCommand + "  <" + filepath.Join(testCasesDir, testCaseID)
 		result, err = exec.RunCommand(execCmd, submitsDir)
 		execResult = append(execResult, result)
 	}
