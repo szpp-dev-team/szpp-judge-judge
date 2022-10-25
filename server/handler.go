@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 
+	"cloud.google.com/go/storage"
 	"github.com/szpp-dev-team/szpp-judge-judge/lib/exec"
 	"github.com/szpp-dev-team/szpp-judge-judge/model"
 	"github.com/szpp-dev-team/szpp-judge-judge/proglang"
@@ -41,21 +42,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	}
 
 	// ソースコードをGCPから取得
-	obj := bkt.Object(filepath.Join("submits", judgeReq.SubmitID))
-
-	r, err := obj.NewReader(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-
-	file, err := os.Create(filepath.Join(submitsDir, "Main.cpp"))
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	_, err = io.Copy(file, r)
+	err = saveGCSContentAsFile(ctx, bkt, filepath.Join("submits", judgeReq.SubmitID), filepath.Join(submitsDir, "Main.cpp"))
 	if err != nil {
 		return nil, err
 	}
@@ -63,25 +50,13 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	// テストケースをGCSから取得
 	testCaseOut := [][]byte{}
 	for i, testCaseID := range judgeReq.TestcaseIDs {
-		obj = bkt.Object(filepath.Join("testcases", judgeReq.SubmitID, "in", testCaseID))
-		r, err = obj.NewReader(ctx)
+		err = saveGCSContentAsFile(ctx, bkt, filepath.Join("testcases", judgeReq.SubmitID, "in", testCaseID), filepath.Join(testCasesDir, "in", testCaseID))
 		if err != nil {
 			return nil, err
 		}
 
-		file, err = os.Create(filepath.Join(testCasesDir, "in", testCaseID))
-		if err != nil {
-			return nil, err
-		}
-
-		_, err = io.Copy(file, r)
-		if err != nil {
-			return nil, err
-		}
-		file.Close()
-
-		obj = bkt.Object(filepath.Join("testcases", judgeReq.SubmitID, "out", testCaseID))
-		r, err = obj.NewReader(ctx)
+		obj := bkt.Object(filepath.Join("testcases", judgeReq.SubmitID, "out", testCaseID))
+		r, err := obj.NewReader(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -159,4 +134,27 @@ func makeResp(testCaseIDs []string, execResult []*exec.Result, correctAns [][]by
 	}
 
 	return &ans
+}
+
+func saveGCSContentAsFile(ctx context.Context,bkt *storage.BucketHandle, gcsPath string, filePath string) error {
+	obj := bkt.Object(gcsPath)
+
+	r, err := obj.NewReader(ctx)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, r)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
