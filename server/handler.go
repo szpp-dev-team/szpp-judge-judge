@@ -1,14 +1,13 @@
 package server
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
+	"reflect"
+	"strings"
 
 	"github.com/szpp-dev-team/szpp-judge-judge/lib/exec"
 	"github.com/szpp-dev-team/szpp-judge-judge/model"
@@ -101,7 +100,6 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(result.ExecutionTime)
 
 	// ソースコードを全てのテストケースに対して実行する
 	var execResult []*exec.Result
@@ -114,43 +112,40 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	// 判定してレスポンスを返す。
 	var resp model.JudgeResponse
 	resp.TestcaseResults = make([]model.TestcaseResult, len(execResult))
-	for i, testCaseID := range judgeReq.TestcaseIDs {
+	for i, row := range judgeReq.TestcaseIDs {
 		var testCaseResult model.TestcaseResult
-		testCaseResult.ID = testCaseID
+		testCaseResult.ID = row
 		resp.TestcaseResults[i] = testCaseResult
+		resp.TestcaseResults[i].ExecutionMemory = int64(result.ExecutionMemory)
+		resp.TestcaseResults[i].ExecutionTime   = int64(result.ExecutionTime)
 	}
-	for _, testCaseResult := range resp.TestcaseResults {
-		testCaseResult.ExecutionMemory = int64(result.ExecutionMemory)
-		testCaseResult.ExecutionTime = int64(result.ExecutionTime)
-	}
+
 	resp.Status = model.StatusAC
-	for i, row := range resp.TestcaseResults {
-		tmp := execResult[i]
-		if !(tmp.Success) {
-			row.Status = model.StatusCE
+	for i, row := range execResult {
+		if !(row.Success) {
+			resp.TestcaseResults[i].Status = model.StatusCE
 			resp.Status = model.StatusCE
 			resp.CompileMessage = &result.Stderr
-		} else if tmp.Stderr != "" {
-			row.Status = model.StatusRE
-			resp.Status = model.StatusRE
+		} else if row.Stderr != "" {
+			resp.TestcaseResults[i].Status = model.StatusRE
+			resp.TestcaseResults[i].Status = model.StatusRE
 			resp.ErrorMessage = &result.Stderr
-		} else if tmp.ExecutionTime.Milliseconds() > 2000 {
-			row.Status = model.StatusTLE
+		} else if row.ExecutionTime.Milliseconds() > 2000 {
+			resp.TestcaseResults[i].Status = model.StatusTLE
 			resp.Status = model.StatusTLE
-		} else if tmp.ExecutionMemory > 1024*1000 {
-			row.Status = model.StatusMLE
+		} else if row.ExecutionMemory > 1024*1000 {
+			resp.TestcaseResults[i].Status = model.StatusMLE
 			resp.Status = model.StatusMLE
-		} else if false {
-			row.Status = model.StatusOLE
+		} else if false { // TODO oleの条件
+			resp.TestcaseResults[i].Status = model.StatusOLE
 			resp.Status = model.StatusOLE
 		} else {
-			fmt.Println(strconv.Itoa(i))
-			fmt.Println([]byte(tmp.Stdout))
-			fmt.Println(testCaseOut[i])
-			if bytes.Equal([]byte(tmp.Stdout+"\n"), testCaseOut[i]) {
-				row.Status = model.StatusAC
+			userAns := strings.Fields(row.Stdout)
+			correctAns := strings.Fields(string(testCaseOut[i]))
+			if reflect.DeepEqual(userAns, correctAns) {
+				resp.TestcaseResults[i].Status = model.StatusAC
 			} else {
-				row.Status = model.StatusWA
+				resp.TestcaseResults[i].Status = model.StatusWA
 				resp.Status = model.StatusWA
 			}
 		}
