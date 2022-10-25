@@ -17,16 +17,12 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 
 	// tmp directory 作成
 	submitsDir := filepath.Join("tmp", "submits", judgeReq.SubmitID)
-	os.Chmod(submitsDir, os.ModePerm)
-
 	err := os.MkdirAll(submitsDir, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
 
 	testCasesDir := filepath.Join("tmp", "test-cases", judgeReq.SubmitID)
-	os.Chmod(testCasesDir, os.ModePerm)
-
 	err = os.MkdirAll(testCasesDir, os.ModePerm)
 	if err != nil {
 		return nil, err
