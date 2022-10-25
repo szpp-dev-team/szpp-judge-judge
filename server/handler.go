@@ -49,24 +49,17 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 
 	// テストケースをGCSから取得
 	testCaseOut := [][]byte{}
-	for i, testCaseID := range judgeReq.TestcaseIDs {
+	for _, testCaseID := range judgeReq.TestcaseIDs {
 		err = saveGCSContentAsFile(ctx, bkt, filepath.Join("testcases", judgeReq.SubmitID, "in", testCaseID), filepath.Join(testCasesDir, "in", testCaseID))
 		if err != nil {
 			return nil, err
 		}
 
-		obj := bkt.Object(filepath.Join("testcases", judgeReq.SubmitID, "out", testCaseID))
-		r, err := obj.NewReader(ctx)
+		tmp, err := getGCSContentAsBytes(ctx, bkt, filepath.Join("testcases", judgeReq.SubmitID, "out", testCaseID))
 		if err != nil {
 			return nil, err
 		}
-
-		out, err := ioutil.ReadAll(r)
-		if err != nil {
-			return nil, err
-		}
-		testCaseOut = append(testCaseOut, []byte(""))
-		testCaseOut[i] = out
+		testCaseOut = append(testCaseOut, tmp)
 	}
 
 	// ソースコードをコンパイルする
@@ -157,4 +150,21 @@ func saveGCSContentAsFile(ctx context.Context,bkt *storage.BucketHandle, gcsPath
 	}
 
 	return nil
+}
+
+func getGCSContentAsBytes(ctx context.Context,bkt *storage.BucketHandle, gcsPath string) ([]byte, error) {
+	obj := bkt.Object(gcsPath)
+
+	r, err := obj.NewReader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	ans, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return ans, nil
 }
