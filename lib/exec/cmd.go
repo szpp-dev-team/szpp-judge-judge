@@ -8,6 +8,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"os/exec"
 	pkgexec "os/exec"
 	"path"
 	"strconv"
@@ -177,7 +178,12 @@ func killChildProcesses(parentPid int) error {
 	pgrepCmd := pkgexec.Command("pgrep", "-P", strconv.Itoa(parentPid))
 	pgrepCmd.Stdout = stdoutBuf
 	if err := pgrepCmd.Run(); err != nil {
-		return err
+		exitCode := err.(*exec.ExitError).ProcessState.ExitCode()
+		if exitCode == 1 {
+			return nil
+		} else {
+			return err
+		}
 	}
 
 	sc := bufio.NewScanner(stdoutBuf)
@@ -187,8 +193,18 @@ func killChildProcesses(parentPid int) error {
 		if err != nil {
 			return err
 		}
-		if err := pkgexec.Command("kill", "-9", strconv.Itoa(int(pid))).Run(); err != nil {
+		err = killChildProcesses(int(pid))
+		if err != nil {
 			return err
+		}
+		err = pkgexec.Command("kill", "-9", strconv.Itoa(int(pid))).Run()
+		if err != nil {
+			exitCode := err.(*exec.ExitError).ProcessState.ExitCode()
+			if exitCode == 1 {
+				return nil
+			} else {
+				return err
+			}
 		}
 	}
 	return nil
