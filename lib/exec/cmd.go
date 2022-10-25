@@ -130,7 +130,7 @@ type OptionFunc func(*Option)
 
 func DefaultOption() *Option {
 	return &Option{
-		TimeLimit: time.Second,
+		TimeLimit: 20 * time.Second,
 	}
 }
 
