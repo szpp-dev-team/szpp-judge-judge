@@ -174,12 +174,14 @@ func readFileFull(filename string, limit int) ([]byte, error) {
 }
 
 func killChildProcesses(parentPid int) error {
+	fmt.Println("KillChildProcess start. pid :" + strconv.Itoa(parentPid))
 	stdoutBuf := &bytes.Buffer{}
 	pgrepCmd := pkgexec.Command("pgrep", "-P", strconv.Itoa(parentPid))
 	pgrepCmd.Stdout = stdoutBuf
 	if err := pgrepCmd.Run(); err != nil {
 		exitCode := err.(*exec.ExitError).ProcessState.ExitCode()
 		if exitCode == 1 {
+			// parentPid のプロセスに子プロセスがなかった
 			return nil
 		} else {
 			return err
@@ -193,19 +195,34 @@ func killChildProcesses(parentPid int) error {
 		if err != nil {
 			return err
 		}
+
+		// 子プロセスを先に kill する
 		err = killChildProcesses(int(pid))
 		if err != nil {
 			return err
 		}
-		err = pkgexec.Command("kill", "-9", strconv.Itoa(int(pid))).Run()
-		if err != nil {
-			exitCode := err.(*exec.ExitError).ProcessState.ExitCode()
-			if exitCode == 1 {
-				return nil
-			} else {
+
+		// kill したいプロセスの存在確認
+		tmp, err := checkProcessIsExit(int(pid))
+		if tmp {
+			err = pkgexec.Command("kill", "-9", strconv.Itoa(int(pid))).Run()
+			if err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+func checkProcessIsExit(pid int) (bool, error) {
+	cmd := pkgexec.Command("ps", "-p", strconv.Itoa(pid))
+	err := cmd.Run()
+	exitCode := cmd.ProcessState.ExitCode()
+	if exitCode == 0 {
+		return true, nil
+	} else if exitCode == 1 {
+		return false, nil
+	} else {
+		return false, err
+	}
 }
