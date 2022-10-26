@@ -177,13 +177,11 @@ func killChildProcesses(parentPid int) error {
 	}
 
 	for _, childPid := range childPids {
-		err = killChildProcesses(childPid)
-		if err != nil {
+		if err := killChildProcesses(childPid); err != nil {
 			return err
 		}
 
-		err = killProcessByPid(childPid)
-		if err != nil {
+		if err := killProcessByPid(childPid); err != nil {
 			return err
 		}
 	}
@@ -205,7 +203,7 @@ func getChildProcessIDs(pid int) ([]int, error) {
 		}
 	}
 
-	var ans []int
+	var childProcessIDs []int
 	sc := bufio.NewScanner(stdoutBuf)
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())
@@ -213,35 +211,34 @@ func getChildProcessIDs(pid int) ([]int, error) {
 		if err != nil {
 			return nil, err
 		}
-		ans = append(ans, int(tmp))
+		childProcessIDs = append(childProcessIDs, int(tmp))
 	}
 
-	return ans, nil
+	return childProcessIDs, nil
 }
 
 func killProcessByPid(pid int) error {
 	// プロセスの存在確認
-	isExit, err := checkProcessIsExit(pid)
+	isExist, err := checkProcessIsExist(pid)
 	if err != nil {
 		return err
 	}
 
-	if isExit {
-		err := pkgexec.Command("kill", "-9", strconv.Itoa(pid)).Run()
-		if err != nil {
+	if isExist {
+		if err := pkgexec.Command("kill", "-9", strconv.Itoa(pid)).Run(); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func checkProcessIsExit(pid int) (bool, error) {
+func checkProcessIsExist(pid int) (bool, error) {
 	cmd := pkgexec.Command("ps", "-p", strconv.Itoa(pid))
 	err := cmd.Run()
 	exitCode := cmd.ProcessState.ExitCode()
-	if exitCode == 0 {
+	if exitCode == 0 { // プロセスが存在する
 		return true, nil
-	} else if exitCode == 1 {
+	} else if exitCode == 1 { // プロセスが存在しない
 		return false, nil
 	} else {
 		return false, err
