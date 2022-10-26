@@ -219,12 +219,12 @@ func getChildProcessIDs(pid int) ([]int, error) {
 
 func killProcessByPid(pid int) error {
 	// プロセスの存在確認
-	isExist, err := checkProcessIsExist(pid)
+	Exists, err := existsProcess(pid)
 	if err != nil {
 		return err
 	}
 
-	if isExist {
+	if Exists {
 		if err := pkgexec.Command("kill", "-9", strconv.Itoa(pid)).Run(); err != nil {
 			return err
 		}
@@ -232,7 +232,7 @@ func killProcessByPid(pid int) error {
 	return nil
 }
 
-func checkProcessIsExist(pid int) (bool, error) {
+func existsProcess(pid int) (bool, error) {
 	cmd := pkgexec.Command("ps", "-p", strconv.Itoa(pid))
 	err := cmd.Run()
 	exitCode := cmd.ProcessState.ExitCode()
