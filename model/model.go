@@ -9,10 +9,10 @@ type JudgeRequest struct {
 
 type JudgeResponse struct {
 	Status          Status           `json:"status"`
+	ExecutionTime   int64            `json:"execution_time"` // max usage
+	ExecutionMemory int64            `json:"execution_memory"` // max usage
 	CompileMessage  *string          `json:"compile_message"` // nil if Status is not CE
 	ErrorMessage    *string          `json:"error_message"`     // nil if Status is not IE
-	ExecutionMemory int64            `json:"execution_memory"` // max usage
-	ExecutionTime   int64            `json:"execution_time"` // max usage
 	TestcaseResults []TestcaseResult `json:"testcase_results"`
 }
 
