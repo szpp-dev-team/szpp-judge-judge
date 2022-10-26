@@ -14,11 +14,21 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 
 	resp.Status = model.StatusAC
 
+	maxMem := 0
+	maxTime := 0
+
 	for i, result := range execResults {
 		var tcr model.TestcaseResult
 		tcr.ID = testCaseIDs[i]
 		tcr.ExecutionMemory = int64(result.ExecutionMemory)
 		tcr.ExecutionTime = result.ExecutionTime.Milliseconds()
+
+		if maxMem < result.ExecutionMemory {
+			maxMem = result.ExecutionMemory
+		}
+		if maxTime < int(result.ExecutionTime.Milliseconds()) {
+			maxTime = int(result.ExecutionTime.Milliseconds())
+		}
 
 		if !result.Success { // RE
 			tcr.Status = model.StatusRE
@@ -46,6 +56,9 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 
 		resp.TestcaseResults[i] = tcr
 	}
+
+	resp.ExecutionMemory = int64(maxMem)
+	resp.ExecutionTime = int64(maxTime)
 
 	return &resp
 }
