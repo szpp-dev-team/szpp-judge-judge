@@ -3,7 +3,6 @@ package exec
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"log"
 	"math"
@@ -52,7 +51,6 @@ func RunCommand(command string, tmpDirPath string, optFuncs ...OptionFunc) (*Res
 
 	// コマンド実行
 	if err := cmd.Start(); err != nil {
-		fmt.Println("check cmd start")
 		return nil, err
 	}
 	tc := time.NewTicker(opt.TimeLimit) // TimeLimit の時間が経ったら chan を send する
@@ -173,23 +171,76 @@ func readFileFull(filename string, limit int) ([]byte, error) {
 }
 
 func killChildProcesses(parentPid int) error {
-	stdoutBuf := &bytes.Buffer{}
-	pgrepCmd := pkgexec.Command("pgrep", "-P", strconv.Itoa(parentPid))
-	pgrepCmd.Stdout = stdoutBuf
-	if err := pgrepCmd.Run(); err != nil {
+	childPids, err := getChildProcessIDs(parentPid)
+	if err != nil {
 		return err
 	}
 
-	sc := bufio.NewScanner(stdoutBuf)
-	for sc.Scan() {
-		line := strings.TrimSpace(sc.Text())
-		pid, err := strconv.ParseInt(line, 10, 64)
-		if err != nil {
+	for _, childPid := range childPids {
+		if err := killChildProcesses(childPid); err != nil {
 			return err
 		}
-		if err := pkgexec.Command("kill", "-9", strconv.Itoa(int(pid))).Run(); err != nil {
+
+		if err := killProcessByPid(childPid); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func getChildProcessIDs(pid int) ([]int, error) {
+	stdoutBuf := &bytes.Buffer{}
+	cmd := pkgexec.Command("pgrep", "-P", strconv.Itoa(pid))
+	cmd.Stdout = stdoutBuf
+
+	err := cmd.Run()
+	exitCode := cmd.ProcessState.ExitCode()
+	if err != nil {
+		if exitCode == 1 { // 子プロセスが存在しない
+			return []int{}, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	var childProcessIDs []int
+	sc := bufio.NewScanner(stdoutBuf)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		tmp, err := strconv.ParseInt(line, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		childProcessIDs = append(childProcessIDs, int(tmp))
+	}
+
+	return childProcessIDs, nil
+}
+
+func killProcessByPid(pid int) error {
+	// プロセスの存在確認
+	Exists, err := existsProcess(pid)
+	if err != nil {
+		return err
+	}
+
+	if Exists {
+		if err := pkgexec.Command("kill", "-9", strconv.Itoa(pid)).Run(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func existsProcess(pid int) (bool, error) {
+	cmd := pkgexec.Command("ps", "-p", strconv.Itoa(pid))
+	err := cmd.Run()
+	exitCode := cmd.ProcessState.ExitCode()
+	if exitCode == 0 { // プロセスが存在する
+		return true, nil
+	} else if exitCode == 1 { // プロセスが存在しない
+		return false, nil
+	} else {
+		return false, err
+	}
 }

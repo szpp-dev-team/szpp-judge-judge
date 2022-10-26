@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -21,8 +20,7 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 		tcr.ExecutionMemory = int64(result.ExecutionMemory)
 		tcr.ExecutionTime = result.ExecutionTime.Milliseconds()
 
-		if result.Stderr != "" { // RE 
-			fmt.Println(result.Stderr)
+		if !result.Success { // RE
 			tcr.Status = model.StatusRE
 			ans.Status = model.StatusRE
 			ans.ErrorMessage = &result.Stderr

@@ -58,16 +58,13 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 
 	// ソースコードをコンパイルする
 	cmd := proglang.NewCommand(judgeReq.LanguageID, submitsDir)
-	fmt.Println(cmd.CompileCommand)
-	result, err := exec.RunCommand(cmd.CompileCommand, submitsDir, exec.OptTimeLimit(10*time.Second))
+	result, err := exec.RunCommand(cmd.CompileCommand, submitsDir, exec.OptTimeLimit(60*time.Second))
 	if err != nil {
 		fmt.Println("fail to compile")
 		return nil, err
 	}
 	// コンパイル失敗してたらCEを返す
 	if !(result.Success) {
-		fmt.Println(result.Stdout)
-		fmt.Println(result.Stderr)
 		ans := makeCEresp(result.Stderr)
 		return ans, nil
 	}
