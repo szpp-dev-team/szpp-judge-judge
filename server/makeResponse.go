@@ -9,10 +9,10 @@ import (
 )
 
 func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]byte) *model.JudgeResponse {
-	var ans model.JudgeResponse
-	ans.TestcaseResults = make([]model.TestcaseResult, len(execResults))
+	var resp model.JudgeResponse
+	resp.TestcaseResults = make([]model.TestcaseResult, len(execResults))
 
-	ans.Status = model.StatusAC
+	resp.Status = model.StatusAC
 
 	for i, result := range execResults {
 		var tcr model.TestcaseResult
@@ -22,17 +22,17 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 
 		if !result.Success { // RE
 			tcr.Status = model.StatusRE
-			ans.Status = model.StatusRE
-			ans.ErrorMessage = &result.Stderr
+			resp.Status = model.StatusRE
+			resp.ErrorMessage = &result.Stderr
 		} else if result.ExecutionTime.Milliseconds() > 2000 { // TLE
 			tcr.Status = model.StatusTLE
-			ans.Status = model.StatusTLE
+			resp.Status = model.StatusTLE
 		} else if result.ExecutionMemory > 128*100 { // MLE
 			tcr.Status = model.StatusMLE
-			ans.Status = model.StatusMLE
+			resp.Status = model.StatusMLE
 		} else if false { // OLE
 			tcr.Status = model.StatusOLE
-			ans.Status = model.StatusOLE
+			resp.Status = model.StatusOLE
 		} else { // AC or WA
 			userAns := strings.Fields(result.Stdout)
 			correct := strings.Fields(string(correctAns[i]))
@@ -40,14 +40,14 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 				tcr.Status = model.StatusAC
 			} else {
 				tcr.Status = model.StatusWA
-				ans.Status = model.StatusWA
+				resp.Status = model.StatusWA
 			}
 		}
 
-		ans.TestcaseResults[i] = tcr
+		resp.TestcaseResults[i] = tcr
 	}
 
-	return &ans
+	return &resp
 }
 
 func makeCEresp(compileMessage string) *model.JudgeResponse {
