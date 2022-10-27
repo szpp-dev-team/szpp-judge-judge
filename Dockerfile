@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     zip \
     unzip \
     build-essential \
+    time \
     && rm -rf /var/lib/apt/lists/*
 
 # C/C++(gcc-12)
