@@ -23,7 +23,7 @@ func NewCommand(langID string, tmpDirPath string) *Command {
 	if langID == "cpp" {
 		return &Command{
 			ID:             "cpp",
-			CompileCommand: fmt.Sprintf("g++ -o %s/Main %s", path.Join(tmpDirPath), path.Join(tmpDirPath, "Main.cpp")),
+			CompileCommand: fmt.Sprintf("g++ -o %s/Main %s >%s 2>%s", path.Join(tmpDirPath), path.Join(tmpDirPath, "Main.cpp"), path.Join(tmpDirPath, "stdout.txt"), path.Join(tmpDirPath, "stderr.txt")),
 			ExecuteCommand: fmt.Sprintf("./%s >%s 2>%s", path.Join(tmpDirPath, "Main"), path.Join(tmpDirPath, "stdout.txt"), path.Join(tmpDirPath, "stderr.txt")),
 		}
 	}
