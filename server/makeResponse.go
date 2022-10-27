@@ -30,19 +30,16 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 			maxTime = int(result.ExecutionTime.Milliseconds())
 		}
 
-		if !result.Success { // RE
-			tcr.Status = model.StatusRE
-			resp.Status = model.StatusRE
-			resp.ErrorMessage = &result.Stderr
-		} else if result.ExecutionTime.Milliseconds() > 2000 { // TLE
+		if result.ExecutionTime.Milliseconds() > 2000 { // TLE
 			tcr.Status = model.StatusTLE
 			resp.Status = model.StatusTLE
 		} else if result.ExecutionMemory > 128*100 { // MLE
 			tcr.Status = model.StatusMLE
 			resp.Status = model.StatusMLE
-		} else if false { // OLE
-			tcr.Status = model.StatusOLE
-			resp.Status = model.StatusOLE
+		} else if !result.Success { // RE
+			tcr.Status = model.StatusRE
+			resp.Status = model.StatusRE
+			resp.ErrorMessage = &result.Stderr
 		} else { // AC or WA
 			userAns := strings.Fields(result.Stdout)
 			correct := strings.Fields(string(correctAns[i]))
