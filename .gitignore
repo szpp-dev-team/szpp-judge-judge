@@ -1,2 +1,8 @@
+image.png
 .env
 credentials.json
+*.cpp
+*.txt
+Main
+*.json
+.DS_Store

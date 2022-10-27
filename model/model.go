@@ -1,23 +1,26 @@
 package model
 
 type JudgeRequest struct {
-	SubmitID    uint64   `json:"submitID"`
-	LanguageID  string   `json:"languageID"`
-	TestcaseIDs []uint64 `json:"testcaseIDs"`
+	SubmitID    string   `json:"submit_id"`
+	TaskID      string   `json:"task_id"`
+	LanguageID  string   `json:"language_id"`
+	TestcaseIDs []string `json:"testcase_names"`
 }
 
 type JudgeResponse struct {
 	Status          Status           `json:"status"`
-	CompileMessage  *string          `json:"compileMessage"` // nil if Status is not CE
-	ErrorMessage    *string          `json:"errorMessage"`   // nil if Status is not IE
-	TestcaseResults []TestcaseResult `json:"testcaseResults"`
+	ExecutionTime   int64            `json:"execution_time"` // max usage
+	ExecutionMemory int64            `json:"execution_memory"` // max usage
+	CompileMessage  *string          `json:"compile_message"` // nil if Status is not CE
+	ErrorMessage    *string          `json:"error_message"`     // nil if Status is not IE
+	TestcaseResults []TestcaseResult `json:"testcase_results"`
 }
 
 type TestcaseResult struct {
-	ID              uint64 `json:"id"`
+	ID              string `json:"id"`
 	Status          Status `json:"status"`
-	ExecutionTime   int64  `json:"executionTime"`   // in milliseconds
-	ExecutionMemory int64  `json:"executionMemory"` // in killobytes
+	ExecutionTime   int64  `json:"execution_time"`   // in milliseconds
+	ExecutionMemory int64  `json:"execution_memory"` // in kilobytes
 }
 
 type Status string
