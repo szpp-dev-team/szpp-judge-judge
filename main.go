@@ -7,17 +7,18 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/szpp-dev-team/szpp-judge-judge/server"
+	"google.golang.org/api/option"
 )
 
 func main() {
 	ctx := context.Background()
-	gcs, err := storage.NewClient(ctx)
+	gcs, err := storage.NewClient(ctx, option.WithCredentialsFile("credentials.json"))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	srv := server.New(gcs)
-	if err := http.ListenAndServe(":8080", srv); err != nil {
+	if err := http.ListenAndServe(":3776", srv); err != nil {
 		log.Fatal(err)
 	}
 }

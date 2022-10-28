@@ -8,7 +8,7 @@ import (
 	"github.com/szpp-dev-team/szpp-judge-judge/model"
 )
 
-func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]byte) *model.JudgeResponse {
+func makeResp(testCaseIDs []int, execResults []*exec.Result, correctAns [][]byte) (*model.JudgeResponse, error) {
 	var resp model.JudgeResponse
 	resp.TestcaseResults = make([]model.TestcaseResult, len(execResults))
 
@@ -20,6 +20,7 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 	for i, result := range execResults {
 		var tcr model.TestcaseResult
 		tcr.ID = testCaseIDs[i]
+
 		tcr.ExecutionMemory = int64(result.ExecutionMemory)
 		tcr.ExecutionTime = result.ExecutionTime.Milliseconds()
 
@@ -33,7 +34,7 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 		if result.ExecutionTime.Milliseconds() > 2000 { // TLE
 			tcr.Status = model.StatusTLE
 			resp.Status = model.StatusTLE
-		} else if result.ExecutionMemory > 128*100 { // MLE
+		} else if result.ExecutionMemory > 128 * 1000 { // MLE
 			tcr.Status = model.StatusMLE
 			resp.Status = model.StatusMLE
 		} else if !result.Success { // RE
@@ -57,7 +58,7 @@ func makeResp(testCaseIDs []string, execResults []*exec.Result, correctAns [][]b
 	resp.ExecutionMemory = int64(maxMem)
 	resp.ExecutionTime = int64(maxTime)
 
-	return &resp
+	return &resp, nil
 }
 
 func makeCEresp(compileMessage string) *model.JudgeResponse {
