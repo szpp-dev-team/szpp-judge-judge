@@ -49,6 +49,9 @@ func RunCommand(command string, tmpDirPath string, optFuncs ...OptionFunc) (*Res
 	gtimeStderrBuf := bytes.NewBuffer(make([]byte, GnuTimeStdoutBufSize))
 	cmd.Stderr = gtimeStderrBuf
 
+	// working directory の設定
+	cmd.Dir = tmpDirPath
+
 	// コマンド実行
 	if err := cmd.Start(); err != nil {
 		return nil, err
