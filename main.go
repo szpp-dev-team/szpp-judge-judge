@@ -8,12 +8,11 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/szpp-dev-team/szpp-judge-judge/server"
-	"google.golang.org/api/option"
 )
 
 func main() {
 	ctx := context.Background()
-	gcs, err := storage.NewClient(ctx, option.WithCredentialsFile("credentials.json"))
+	gcs, err := storage.NewClient(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
