@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 
 	"cloud.google.com/go/storage"
 	"github.com/szpp-dev-team/szpp-judge-judge/server"
@@ -17,8 +18,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	port := "8001"
+	if os.Getenv("PORT") != "" {
+		port = os.Getenv("PORT")
+	}
+
 	srv := server.New(gcs)
-	if err := http.ListenAndServe(":3776", srv); err != nil {
+	if err := http.ListenAndServe(":"+port, srv); err != nil {
 		log.Fatal(err)
 	}
 }
