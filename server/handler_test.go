@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 
 	"testing"
 
@@ -13,45 +14,57 @@ import (
 )
 
 func TestSubmitAC(t *testing.T) {
-	if err := testEasily("test"); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func TestSubmitWA(t *testing.T) {
-	if err := testEasily("test-wa"); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func TestSubmitRE(t *testing.T) {
-	if err := testEasily("test-mle"); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func TestSubmitTLE(t *testing.T) {
-	if err := testEasily("test-tle"); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func TestSubmitCE(t *testing.T) {
-	if err := testEasily("test-ce"); err != nil {
+	if err := testEasily("0"); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func TestSubmitAllOdd(t *testing.T) {
-	if err := testEasily("test-all-odd"); err != nil {
+	if err := testEasily("1"); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func TestSubmitCE(t *testing.T) {
+	if err := testEasily("2"); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func TestSubmitMLE2(t *testing.T) {
+	if err := testEasily("3"); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func TestSubmitMLE1(t *testing.T) {
+	if err := testEasily("4"); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func TestSubmitAllOdd2(t *testing.T) {
+	if err := testEasily("5"); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func TestSubmit1(t *testing.T) {
+	if err := testEasily("6"); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func TestSubmit2(t *testing.T) {
+	if err := testEasily("7"); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func testEasily(submitID string) error {
-	testCaseIDs := []string{"sample1.txt", "sample2.txt", "sample3.txt", "sample4.txt", "sample5.txt", "sample6.txt",
-		"sample7.txt", "sample8.txt", "sample9.txt", "sample10.txt", "sample11.txt", "sample12.txt"}
-	return testRequest(makeSrv(), submitID, "test", "cpp", testCaseIDs)
+	var testcases []model.Testcase
+	testcases = append(testcases, model.Testcase{ID: 0, Name: "sample01.txt"})
+	return testRequest(makeSrv(), submitID, "2", "cpp", testcases)
 }
 
 func makeSrv() *Server {
@@ -64,14 +77,22 @@ func makeSrv() *Server {
 	return New(gcs)
 }
 
-func testRequest(srv *Server, submitID string, taskID string, langID string, testCaseIDs []string) error {
+func testRequest(srv *Server, submitID string, taskID string, langID string, testCaseIDs []model.Testcase) error {
 	fmt.Println("######## " + submitID + " ########")
-	req := &model.JudgeRequest{SubmitID: submitID, TaskID: taskID, LanguageID: langID, TestcaseIDs: testCaseIDs}
+	submitIDNum, err := strconv.Atoi(submitID)
+	if err != nil {
+		return err
+	}
+	taskIDNum, err := strconv.Atoi(taskID)
+	if err != nil {
+		return err
+	}
+	req := &model.JudgeRequest{SubmitID: submitIDNum, TaskID: taskIDNum, LanguageID: langID, Testcases: testCaseIDs}
 	res, err := srv.HandleJudgeRequest(req)
 	if err != nil {
 		return err
 	}
 	fmt.Println(res)
-	fmt.Println("######## " + req.SubmitID + " ########")
+	fmt.Println("######## " + submitID + " ########")
 	return nil
 }

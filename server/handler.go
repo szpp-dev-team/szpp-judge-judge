@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/szpp-dev-team/szpp-judge-judge/lib/exec"
@@ -18,27 +19,34 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	bkt := srv.gcs.Bucket("szpp-judge")
 
 	// tmp directory 作成
-	tmpDirPath := filepath.Join("../tmp", judgeReq.SubmitID)
+	tmpDirPath := filepath.Join("../tmp", strconv.Itoa(judgeReq.SubmitID))
 	if err := os.MkdirAll(tmpDirPath, os.ModePerm); err != nil {
+		fmt.Println("Error: make directory 01")
 		return nil, err
 	}
 	if err := os.MkdirAll(filepath.Join(tmpDirPath, "test-cases"), os.ModePerm); err != nil {
+		fmt.Println("Error: make directory 02")
 		return nil, err
 	}
 
 	// GCSからソースコード・テストケースを取得
-	if err := saveGCSContentAsFile(ctx, bkt, filepath.Join("submits", judgeReq.SubmitID), filepath.Join(tmpDirPath, "Main.cpp")); err != nil {
+	if err := saveGCSContentAsFile(ctx, bkt, filepath.Join("submits", strconv.Itoa(judgeReq.SubmitID)), filepath.Join(tmpDirPath, "Main.cpp")); err != nil {
+		fmt.Println("Error: get src code from gcs")
 		return nil, err
 	}
 
 	correctAns := [][]byte{}
-	for _, testCaseID := range judgeReq.TestcaseIDs {
-		if err := saveGCSContentAsFile(ctx, bkt, filepath.Join("testcases", judgeReq.TaskID, "in", testCaseID), filepath.Join(tmpDirPath, "test-cases", testCaseID)); err != nil {
+	for _, testCase := range judgeReq.Testcases {
+		testCaseName := testCase.Name
+		if err := saveGCSContentAsFile(ctx, bkt, filepath.Join("testcases", strconv.Itoa(judgeReq.TaskID), "in", testCaseName), filepath.Join(tmpDirPath, "test-cases", testCaseName)); err != nil {
+			fmt.Println(filepath.Join("testcases", strconv.Itoa(judgeReq.TaskID), "in", testCaseName))
+			fmt.Println("Error: get testcase in from gcs")
 			return nil, err
 		}
 
-		tmp, err := getGCSContentAsBytes(ctx, bkt, filepath.Join("testcases", judgeReq.TaskID, "out", testCaseID))
+		tmp, err := getGCSContentAsBytes(ctx, bkt, filepath.Join("testcases", strconv.Itoa(judgeReq.TaskID), "out", testCaseName))
 		if err != nil {
+			fmt.Println("Error: get testcase out from gcs")
 			return nil, err
 		}
 		correctAns = append(correctAns, tmp)
@@ -49,6 +57,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 	fmt.Println(cmd.CompileCommand)
 	result, err := exec.RunCommand(cmd.CompileCommand, tmpDirPath, exec.OptTimeLimit(60*time.Second))
 	if err != nil {
+		fmt.Println("Error: fail to compile")
 		return nil, err
 	}
 	// コンパイル失敗してたらCEを返す
@@ -59,17 +68,26 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 
 	// ソースコードを全てのテストケースに対して実行する
 	var execResult []*exec.Result
-	for _, testCaseID := range judgeReq.TestcaseIDs {
-		execCmd := cmd.ExecuteCommand + "  <" + filepath.Join("test-cases", testCaseID)
+	for _, testCase := range judgeReq.Testcases {
+		testCaseName := testCase.Name
+		execCmd := cmd.ExecuteCommand + "  <" + filepath.Join("test-cases", testCaseName)
 		result, err = exec.RunCommand(execCmd, tmpDirPath, exec.OptTimeLimit(3*time.Second))
 		if err != nil {
+			fmt.Println("Error: get testcase in from gcs")
 			return nil, err
 		}
 		execResult = append(execResult, result)
 	}
 
 	// 判定してレスポンスを返す
-	resp := *makeResp(judgeReq.TestcaseIDs, execResult, correctAns)
+	var testCaseIDs []int
+	for _, row := range judgeReq.Testcases {
+		testCaseIDs = append(testCaseIDs, row.ID)
+	}
+	resp, err := makeResp(testCaseIDs, execResult, correctAns)
+	if err != nil {
+		return nil, err
+	}
 
-	return &resp, nil
+	return resp, nil
 }
