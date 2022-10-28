@@ -34,7 +34,7 @@ func makeResp(testCaseIDs []int, execResults []*exec.Result, correctAns [][]byte
 		if result.ExecutionTime.Milliseconds() > 2000 { // TLE
 			tcr.Status = model.StatusTLE
 			resp.Status = model.StatusTLE
-		} else if result.ExecutionMemory > 128*100 { // MLE
+		} else if result.ExecutionMemory > 128 * 1000 { // MLE
 			tcr.Status = model.StatusMLE
 			resp.Status = model.StatusMLE
 		} else if !result.Success { // RE
