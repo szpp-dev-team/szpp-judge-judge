@@ -25,13 +25,15 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	b, _ := json.Marshal(judgeReq)
+	log.Println(string(b))
 	judgeResp, err := srv.HandleJudgeRequest(&judgeReq)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	b, _ := json.Marshal(judgeResp)
+	b, _ = json.Marshal(judgeResp)
 	log.Println(string(b))
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(judgeResp); err != nil {
