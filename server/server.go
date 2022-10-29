@@ -31,6 +31,8 @@ func (srv *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	b, _ := json.Marshal(judgeResp)
+	log.Println(string(b))
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(judgeResp); err != nil {
 		log.Println(err)
