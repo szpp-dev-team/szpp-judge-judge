@@ -25,28 +25,28 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 		return nil, err
 	}
 	if err := os.MkdirAll(filepath.Join(tmpDirPath, "test-cases"), os.ModePerm); err != nil {
-		fmt.Println("Error: make directory 02")
+		fmt.Println("Error: make directory")
 		return nil, err
 	}
 
-	// GCSからソースコード・テストケースを取得
+	// GCSからソースコードを取得
 	if err := saveGCSContentAsFile(ctx, bkt, filepath.Join("submits", strconv.Itoa(judgeReq.SubmitID)), filepath.Join(tmpDirPath, "Main.cpp")); err != nil {
 		fmt.Println("Error: get src code from gcs")
 		return nil, err
 	}
 
+	// GCSからテストケースを取得
 	correctAns := [][]byte{}
 	for _, testCase := range judgeReq.Testcases {
 		testCaseName := testCase.Name
 		if err := saveGCSContentAsFile(ctx, bkt, filepath.Join("testcases", strconv.Itoa(judgeReq.TaskID), "in", testCaseName), filepath.Join(tmpDirPath, "test-cases", testCaseName)); err != nil {
-			fmt.Println(filepath.Join("testcases", strconv.Itoa(judgeReq.TaskID), "in", testCaseName))
-			fmt.Println("Error: get testcase in from gcs")
+			fmt.Println("Error: get testcase (in) from gcs")
 			return nil, err
 		}
 
 		tmp, err := getGCSContentAsBytes(ctx, bkt, filepath.Join("testcases", strconv.Itoa(judgeReq.TaskID), "out", testCaseName))
 		if err != nil {
-			fmt.Println("Error: get testcase out from gcs")
+			fmt.Println("Error: get testcase (out) from gcs")
 			return nil, err
 		}
 		correctAns = append(correctAns, tmp)
@@ -61,7 +61,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 		return nil, err
 	}
 	// コンパイル失敗してたらCEを返す
-	if !(result.Success) {
+	if !result.Success {
 		ans := makeCEresp(result.Stderr)
 		return ans, nil
 	}
