@@ -20,10 +20,6 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 
 	// tmp directory 作成
 	tmpDirPath := filepath.Join("../tmp", strconv.Itoa(judgeReq.SubmitID))
-	if err := os.MkdirAll(tmpDirPath, os.ModePerm); err != nil {
-		fmt.Println("Error: make directory 01")
-		return nil, err
-	}
 	if err := os.MkdirAll(filepath.Join(tmpDirPath, "test-cases"), os.ModePerm); err != nil {
 		fmt.Println("Error: make directory")
 		return nil, err
