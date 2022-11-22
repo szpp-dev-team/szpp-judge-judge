@@ -63,8 +63,8 @@ func TestSubmit2(t *testing.T) {
 
 func testEasily(submitID string) error {
 	var testcases []model.Testcase
-	testcases = append(testcases, model.Testcase{ID: 0, Name: "sample01.txt"})
-	return testRequest(makeSrv(), submitID, "2", "cpp", testcases)
+	testcases = append(testcases, model.Testcase{ID: 0, Name: "case01.txt"})
+	return testRequest(makeSrv(), submitID, "5", "cpp", testcases)
 }
 
 func makeSrv() *Server {
