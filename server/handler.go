@@ -69,7 +69,7 @@ func (srv *Server) HandleJudgeRequest(judgeReq *model.JudgeRequest) (*model.Judg
 		execCmd := cmd.ExecuteCommand + "  <" + filepath.Join("test-cases", testCaseName)
 		result, err = exec.RunCommand(execCmd, tmpDirPath, exec.OptTimeLimit(3*time.Second))
 		if err != nil {
-			fmt.Println("Error: get testcase in from gcs")
+			fmt.Println("Error: Fail to run.")
 			return nil, err
 		}
 		execResult = append(execResult, result)
