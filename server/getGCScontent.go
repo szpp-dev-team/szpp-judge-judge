@@ -9,10 +9,17 @@ import (
 	"cloud.google.com/go/storage"
 )
 
-func saveGCSContentAsFile(ctx context.Context, bkt *storage.BucketHandle, gcsPath string, filePath string) error {
+func getGCSReader(ctx context.Context, bkt *storage.BucketHandle, gcsPath string) (*storage.Reader, error) {
 	obj := bkt.Object(gcsPath)
-
 	r, err := obj.NewReader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func saveGCSContentAsFile(ctx context.Context, bkt *storage.BucketHandle, gcsPath string, filePath string) error {
+	r, err := getGCSReader(ctx, bkt, gcsPath)
 	if err != nil {
 		return err
 	}
@@ -33,9 +40,7 @@ func saveGCSContentAsFile(ctx context.Context, bkt *storage.BucketHandle, gcsPat
 }
 
 func getGCSContentAsBytes(ctx context.Context, bkt *storage.BucketHandle, gcsPath string) ([]byte, error) {
-	obj := bkt.Object(gcsPath)
-
-	r, err := obj.NewReader(ctx)
+	r, err := getGCSReader(ctx, bkt, gcsPath)
 	if err != nil {
 		return nil, err
 	}

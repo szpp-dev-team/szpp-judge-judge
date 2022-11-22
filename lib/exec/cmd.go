@@ -69,7 +69,7 @@ func RunCommand(command string, tmpDirPath string, optFuncs ...OptionFunc) (*Res
 	// TimeLimit とコマンド終了の速い方を選択する
 	select {
 	case <-tc.C:
-		log.Println("time limit exceeed")
+		log.Println("time limit exceed")
 		if err := killChildProcesses(pid); err != nil {
 			return nil, err
 		}
